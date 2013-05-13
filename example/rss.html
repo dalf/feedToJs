@@ -1,0 +1,37 @@
+<!DOCTYPE HTML PUBLIC"-//W3C//DTD HTML 4.01 Transitional//EN"
+"http://www.W3.org/TR/html4 loose.dtd">
+
+<html>
+  <head>
+    <title>Titre</title>
+  </head>
+  <body>
+    <div id="rss"></div>
+    <script type="text/javascript" src="jquery-1.9.1.min.js"></script>
+    <script type="text/javascript" src="underscore-min.js"></script>
+    <script type="text/javascript" src="../feedToJss.js"></script>
+
+    <script type="text/html" id="rssTemplate">
+      <% _.each(entries, function(item,key,list) {  %>
+      <div class="entry"><a href="<%= item.links.alternate[0] %>"><%= item.title %></a></div>
+      <% }); %>
+    </script>
+    <script async type="text/javascript">
+      var template = $("#rssTemplate").html();
+
+      function loadFeed(id, url) {
+        $.ajax({
+          type: 'GET',
+          url: url,
+          dataType: "xml"
+        }).done(function(data) {
+          var rss = feedToJs.parse(data);
+          window.rss = rss;
+          $(id).html(_.template(template,rss));
+        });
+      }
+      
+      loadFeed("#rss", "a_feed.rss");
+    </script>    
+  </body>
+</html>
