@@ -1,11 +1,20 @@
 var domToJs = ( function() {
     "use strict";
 
+    /*
+        mostly apply text() to a jquery selector
+        
+        some exceptions :
+        . returns the text inside domElement (like XPath)
+        @attr returns the content of the attribute named attr ( @url, @href ....).
+        
+        return null is the result of the selector is empty.
+     */
     function parsePath(domElement, path) {
 	var element, attributeName, result = null;
 	if (path.charAt(0) === "@") {
 	    attributeName = path.substr(1);
-	    return domElement.getAttribute(attributeName);	    
+	    return domElement.getAttribute(attributeName);
 	} if (path === ".") {
 	    element = $(domElement);
 	} else {
@@ -18,6 +27,16 @@ var domToJs = ( function() {
 	return result;
     }
     
+    /*
+      create an array. Data can come from different parts of the domElement.
+      
+      spec must be an array. Values inside spec are read two by two :
+      the first one is a jquery selector.
+      the second one is the template to used to render the elements selected by the jquery selector.
+      the third one is a jquery selector
+      the forth one is the template associated with the previous jquery selector.
+      etc...
+    */
     function parseArray(domElement, spec) {
 	var i, value, path, template, result=[], parseElement = function(_,e) {
 	    value = parseAll(e, template);
@@ -56,13 +75,14 @@ var domToJs = ( function() {
 	    // jquery selector
 	    value = parsePath(domElement, template); 
 	} else if (templateType === "array") {
-	    // create an array, the templateValue specify how to.
+	    // create an array
 	    value = parseArray(domElement, template); 
 	} else if (templateType === "object") {
-	    // an other template
+	    // create an object
 	    value = parseObject(domElement, template); 
 	} else {
 	    // problem
+	    // FIXME : raise an error
 	}
 	return value;
     }
@@ -110,6 +130,7 @@ var feedToJs = ( function () {
 	}]
     };
 
+    // TODO : check that everything is parsed correctly.
     var rssTemplate = {
 	"title" : "channel > title",
 	"logo" : "channel > logo",
