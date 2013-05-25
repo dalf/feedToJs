@@ -9,7 +9,7 @@
     <div id="rss"></div>
     <script type="text/javascript" src="jquery-1.9.1.min.js"></script>
     <script type="text/javascript" src="underscore-min.js"></script>
-    <script type="text/javascript" src="../feedToJss.js"></script>
+    <script type="text/javascript" src="../feedToJs.js"></script>
 
     <script type="text/html" id="rssTemplate">
       <% _.each(entries, function(item,key,list) {  %>
@@ -31,7 +31,7 @@
         });
       }
       
-      loadFeed("#rss", "a_feed.rss");
+      loadFeed("#rss", "a_feed.xml");
     </script>    
   </body>
 </html>
