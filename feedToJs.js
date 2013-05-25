@@ -11,18 +11,18 @@ var domToJs = ( function() {
         return null is the result of the selector is empty.
      */
     function parsePath(domElement, path) {
-	var element, attributeName, result = null;
+	var $element, attributeName, result = null;
 	if (path.charAt(0) === "@") {
 	    attributeName = path.substr(1);
 	    return domElement.getAttribute(attributeName);
 	} if (path === ".") {
-	    element = $(domElement);
+	    $element = $(domElement);
 	} else {
-	    element = $(domElement).find(path);
+	    $element = $(domElement).find(path);
 	}
 	
-	if (element) {
-	    result = element.text();
+	if ($element) {
+	    result = $element.text();
 	} 
 	return result;
     }
@@ -87,10 +87,8 @@ var domToJs = ( function() {
 	return value;
     }
 
-    return {
-	parse: function(domDocument, template) {
-	    return parseAll(domDocument, template);
-	}
+    return function(domDocument, template) {
+	return parseAll(domDocument, template);
     };
     
 })();
@@ -112,7 +110,7 @@ var feedToJs = ( function () {
 	"title" : "feed > title",
 	"logo" : "feed > logo",
 	"updated" : "feed > updated",
-	"description" : "feed > desription",
+	"description" : "feed > description",
 	"link" : "feed > link",
 	"entries" : [ "feed > entry", {
 	    "id": "id",
@@ -130,12 +128,11 @@ var feedToJs = ( function () {
 	}]
     };
 
-    // TODO : check that everything is parsed correctly.
     var rssTemplate = {
 	"title" : "channel > title",
 	"logo" : "channel > logo",
 	"updated" : "channel > lastBuildDate",
-	"description" : "channel > desription",
+	"description" : "channel > description",
 	"link" : "channel > link",
 	"entries" : [ "channel > item", {
 	    "id": "guid",
@@ -152,18 +149,33 @@ var feedToJs = ( function () {
 	    }
 	}]
     };
-            
-    return {
-	parse : function(xmlDocument) {
-	    var result = null;
-	    if (xmlDocument.getElementsByTagName("rss").length == 1) {
-		result = domToJs.parse(xmlDocument, rssTemplate);
-	    } else {
-		result = domToJs.parse(xmlDocument, atomTemplate);
+    
+    var rdfTemplate = {
+	"title" : "channel > title",
+	"description" : "channel > description",
+	"entries" : [ "item", {
+	    "id": "@about",
+	    "title": "title",
+	    "content": "description",
+	    "links" : {
+		"alternate" : [ "link", "." ],
+		"enclosure" : [ ]
 	    }
-	    console.log(result);
-	    return result;
+	}	    
+	]
+    };
+            
+    return function(xmlDocument) {
+	var result = null;
+	if (xmlDocument.getElementsByTagName("rss").length == 1) {
+	    result = domToJs(xmlDocument, rssTemplate);
+	} else if (xmlDocument.getElementsByTagName("feed").length == 1) {
+	    result = domToJs(xmlDocument, atomTemplate);
+	} else if (xmlDocument.getElementsByTagName("RDF").length == 1) {
+	    result = domToJs(xmlDocument, rdfTemplate);
 	}
+	console.log(result);
+	return result;
     };
     
 })();

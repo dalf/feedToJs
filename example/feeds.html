@@ -1,37 +1,200 @@
-<!DOCTYPE HTML PUBLIC"-//W3C//DTD HTML 4.01 Transitional//EN"
-"http://www.W3.org/TR/html4 loose.dtd">
-
+<!DOCTYPE html>
 <html>
   <head>
-    <title>Titre</title>
+    <title>FeedToJs examples</title>
+    <link rel="stylesheet" href="http://code.jquery.com/ui/1.10.3/themes/smoothness/jquery-ui.css" />
+    <style>
+      .feed, .json, .xml {
+        font-size: 10pt;      
+        font-family: mono;
+        margin: 10px;
+        padding: 10px;
+      }
+
+      .feed, .entries {
+        width: 90%;
+      }
+    </style>
   </head>
   <body>
-    <div id="rss"></div>
-    <script type="text/javascript" src="jquery-1.9.1.min.js"></script>
-    <script type="text/javascript" src="underscore-min.js"></script>
+    <div id="navigator">
+      &nbsp;
+    </div>
+
+    <script src="http://code.jquery.com/jquery-1.9.1.js"></script>
+    <script src="http://code.jquery.com/ui/1.10.3/jquery-ui.js"></script>
+    <script type="text/javascript" src="//cdnjs.cloudflare.com/ajax/libs/underscore.js/1.4.4/underscore.js"></script>
     <script type="text/javascript" src="../feedToJs.js"></script>
 
-    <script type="text/html" id="rssTemplate">
-      <% _.each(entries, function(item,key,list) {  %>
-      <div class="entry"><a href="<%= item.links.alternate[0] %>"><%= item.title %></a></div>
+    <script type="text/html" id="navigatorTemplate">
+      <ul>
+	<% _.each(feeds, function(item, key) { %>
+	<li><a href="#<%= key %>"><%= item.title %></a></li>
+	<% }); %>
+      </ul>
+      <% _.each(feeds, function(item, key, list) { %>
+      <div id="<%= key %>">
+	<div class="buttons">
+	  <input type="radio" name="<%= key %>_View" id="<%= key %>_UiButton" checked /><label for="<%= key %>_UiButton">UI</label>
+	  <input type="radio" name="<%= key %>_View" id="<%= key %>_JsonButton" /><label for="<%= key %>_JsonButton">JSON</label>
+	  <input type="radio" name="<%= key %>_View" id="<%= key %>_XmlButton" /><label for="<%= key %>_XmlButton">XML</label>
+        </div>
+	<div class="ui">Loading...</div>
+	<div class="json" style="display:none"><pre class="content">Loading...</pre></div>
+	<div class="xml" style="display:none"><pre class="content">Loading...</pre></div>
+      </div>
       <% }); %>
     </script>
+
+    <script type="text/html" id="feedTemplate">
+      <h2><%= title %></h2>
+      <div class="description"><%= description %></div>
+      <div class="entries">
+      <% _.each(entries, function(item,key,list) {  %>
+	<h3><a href="<%= item.links.alternate[0] %>"><%= item.title %></a></h3>
+	<div class="details">
+	  <a href="<%= item.links.alternate[0] %>">Link to original article</a>
+          <% if ((typeof(item.published) !== "undefined") && (item.published !== null) && (item.published !== "")) { %><div class="publishedDate">published date : <%= item.published %></div><% } %>
+          <% if ((typeof(item.published) !== "undefined") && (item.updated   !== null) && (item.updated   !== "")) { %><div class="updatedDate">updated date : <%= item.updated %></div><% } %>
+	  <div class="authors">
+	    <% _.each(item.authors, function(author, k, l) { %>
+	    <span><%= author.name %> ( <%= author.email %> )</span>,
+            <% }); %>
+	  </div>
+	  <div class="summary"><%= item.summary %></div>
+	  <div class="content"><%= item.content %></div>
+	</div>
+      <% }); %>
+      </div>
+    </script>
     <script async type="text/javascript">
-      var template = $("#rssTemplate").html();
+      var formatXml = this.formatXml = function (xml) {
+        var reg = /(>)(<)(\/*)/g;
+        var wsexp = / *(.*) +\n/g;
+        var contexp = /(<.+>)(.+\n)/g;
+        xml = xml.replace(reg, '$1\n$2$3').replace(wsexp, '$1\n').replace(contexp, '$1\n$2');
+        var pad = 0;
+        var formatted = '';
+        var lines = xml.split('\n');
+        var indent = 0;
+        var lastType = 'other';
+        // 4 types of tags - single, closing, opening, other (text, doctype, comment) - 4*4 = 16 transitions 
+        var transitions = {
+            'single->single': 0,
+            'single->closing': -1,
+            'single->opening': 0,
+            'single->other': 0,
+            'closing->single': 0,
+            'closing->closing': -1,
+            'closing->opening': 0,
+            'closing->other': 0,
+            'opening->single': 1,
+            'opening->closing': 0,
+            'opening->opening': 1,
+            'opening->other': 1,
+            'other->single': 0,
+            'other->closing': -1,
+            'other->opening': 0,
+            'other->other': 0
+        };
+
+        for (var i = 0; i < lines.length; i++) {
+            var ln = lines[i];
+            var single = Boolean(ln.match(/<.+\/>/)); // is this line a single tag? ex. <br />
+            var closing = Boolean(ln.match(/<\/.+>/)); // is this a closing tag? ex. </a>
+            var opening = Boolean(ln.match(/<[^!?].*>/)); // is this even a tag (that's not <!something>)
+            var type = single ? 'single' : closing ? 'closing' : opening ? 'opening' : 'other';
+            var fromTo = lastType + '->' + type;
+            lastType = type;
+            var padding = '';
+
+            indent += transitions[fromTo];
+            for (var j = 0; j < indent; j++) {
+                padding += '    ';
+            }
+            if (fromTo == 'opening->closing')
+                formatted = formatted.substr(0, formatted.length - 1) + ln + '\n'; // substr removes line break (\n) from prev loop
+            else
+                formatted += padding + ln + '\n';
+        }
+
+        return formatted;
+      };
+    </script>
+    <script>	    
+      var feedTemplate = $("#feedTemplate").html();
+      var navigatorTemplate = $("#navigatorTemplate").html();
+
+      function displayFeed(id, xml) {
+        var json = feedToJs(xml);
+        if (json !== null) {
+          console.log(json);
+	  $("#" + id + " .ui").html(_.template(feedTemplate, json));
+	  $("#" + id + " .json .content").html(JSON.stringify(json, undefined, 2));
+
+          $(".entries").accordion({
+            heightStyle: "content",
+            event: "click hoverintent"
+          });
+        } else {
+	  $("#" + id + " .ui").html("Not recognized");
+	  $("#" + id + " .json .content").html("Not recognized");          
+        }
+
+        var xmlText = (new XMLSerializer()).serializeToString(xml);
+        var xmlTextNode = document.createTextNode(formatXml(xmlText));
+        $("#" + id + " .xml .content").html(xmlTextNode);
+
+        $("#" + id + " .buttons").buttonset();
+      
+        $("#" + id + "_UiButton").click(function () {
+          $("#" + id + " .ui").show();
+          $("#" + id + " .json").hide();
+          $("#" + id + " .xml").hide();
+        });
+
+        $("#" + id + "_JsonButton").click(function () {
+          $("#" + id + " .ui").hide();
+          $("#" + id + " .json").show();
+          $("#" + id + " .xml").hide();
+        });
+
+        $("#" + id + "_XmlButton").click(function () {
+          $("#" + id + " .ui").hide();
+          $("#" + id + " .json").hide();
+          $("#" + id + " .xml").show();
+        });
+      }
 
       function loadFeed(id, url) {
         $.ajax({
           type: 'GET',
           url: url,
           dataType: "xml"
-        }).done(function(data) {
-          var rss = feedToJs.parse(data);
-          window.rss = rss;
-          $(id).html(_.template(template,rss));
+        }).done(function(xml) {
+          displayFeed(id, xml);
+        }).fail(function(jqXHR, textStatus, errorThrown) { 
+          console.log(textStatus) 
         });
       }
+ 
+      function loadFeeds(feeds) {
+   	var key;
+	$("#navigator").html(_.template(navigatorTemplate, { feeds : feeds }));
+        $("#navigator").tabs();
+	for (key in feeds) {
+          if (feeds.hasOwnProperty(key)) {
+            loadFeed(key, feeds[key].url);
+	  }
+        }
+      }
+
+      loadFeeds({ 
+	      "Rss" : {title: "Rss",  url: "rss.xml" },
+	      "Atom": {title: "Atom", url: "atom.xml" },
+	      "RDF" : {title: "RDF",  url: "rdf.xml" }
+      });
       
-      loadFeed("#rss", "a_feed.xml");
     </script>    
   </body>
 </html>
