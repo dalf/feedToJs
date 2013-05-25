@@ -4,6 +4,15 @@
     <title>FeedToJs examples</title>
     <link rel="stylesheet" href="http://code.jquery.com/ui/1.10.3/themes/smoothness/jquery-ui.css" />
     <style>
+      #viewButtons {
+        margin: 10px;
+      }
+
+      #feeds {
+        margin: 10px;
+        
+      }
+      
       .feed, .json, .xml {
         font-size: 10pt;      
         font-family: mono;
@@ -21,12 +30,19 @@
       &nbsp;
     </div>
 
-    <script src="http://code.jquery.com/jquery-1.9.1.js"></script>
-    <script src="http://code.jquery.com/ui/1.10.3/jquery-ui.js"></script>
+    <script type="text/javascript" src="http://code.jquery.com/jquery-1.9.1.js"></script>
+    <script type="text/javascript" src="http://code.jquery.com/ui/1.10.3/jquery-ui.js"></script>
     <script type="text/javascript" src="//cdnjs.cloudflare.com/ajax/libs/underscore.js/1.4.4/underscore.js"></script>
     <script type="text/javascript" src="../feedToJs.js"></script>
 
     <script type="text/html" id="navigatorTemplate">
+      <div id="viewButtons">
+	  <input type="radio" name="view" id="uiButton" checked /><label for="uiButton">UI</label>
+	  <input type="radio" name="view" id="jsonButton" /><label for="jsonButton">JSON</label>
+	  <input type="radio" name="view" id="xmlButton" /><label for="xmlButton">XML</label>
+      </div>
+
+      <div id="feeds">
       <ul>
 	<% _.each(feeds, function(item, key) { %>
 	<li><a href="#<%= key %>"><%= item.title %></a></li>
@@ -34,16 +50,12 @@
       </ul>
       <% _.each(feeds, function(item, key, list) { %>
       <div id="<%= key %>">
-	<div class="buttons">
-	  <input type="radio" name="<%= key %>_View" id="<%= key %>_UiButton" checked /><label for="<%= key %>_UiButton">UI</label>
-	  <input type="radio" name="<%= key %>_View" id="<%= key %>_JsonButton" /><label for="<%= key %>_JsonButton">JSON</label>
-	  <input type="radio" name="<%= key %>_View" id="<%= key %>_XmlButton" /><label for="<%= key %>_XmlButton">XML</label>
-        </div>
 	<div class="ui">Loading...</div>
 	<div class="json" style="display:none"><pre class="content">Loading...</pre></div>
 	<div class="xml" style="display:none"><pre class="content">Loading...</pre></div>
       </div>
       <% }); %>
+      </div>
     </script>
 
     <script type="text/html" id="feedTemplate">
@@ -121,7 +133,7 @@
         return formatted;
       };
     </script>
-    <script>	    
+    <script async type="text/javascript">	    
       var feedTemplate = $("#feedTemplate").html();
       var navigatorTemplate = $("#navigatorTemplate").html();
 
@@ -144,26 +156,6 @@
         var xmlText = (new XMLSerializer()).serializeToString(xml);
         var xmlTextNode = document.createTextNode(formatXml(xmlText));
         $("#" + id + " .xml .content").html(xmlTextNode);
-
-        $("#" + id + " .buttons").buttonset();
-      
-        $("#" + id + "_UiButton").click(function () {
-          $("#" + id + " .ui").show();
-          $("#" + id + " .json").hide();
-          $("#" + id + " .xml").hide();
-        });
-
-        $("#" + id + "_JsonButton").click(function () {
-          $("#" + id + " .ui").hide();
-          $("#" + id + " .json").show();
-          $("#" + id + " .xml").hide();
-        });
-
-        $("#" + id + "_XmlButton").click(function () {
-          $("#" + id + " .ui").hide();
-          $("#" + id + " .json").hide();
-          $("#" + id + " .xml").show();
-        });
       }
 
       function loadFeed(id, url) {
@@ -182,6 +174,27 @@
    	var key;
 	$("#navigator").html(_.template(navigatorTemplate, { feeds : feeds }));
         $("#navigator").tabs();
+
+        $("#viewButtons").buttonset();
+      
+        $("#uiButton").click(function () {
+          $(".ui").show();
+          $(".json").hide();
+          $(".xml").hide();
+        });
+
+        $("#jsonButton").click(function () {
+          $(".ui").hide();
+          $(".json").show();
+          $(".xml").hide();
+        });
+
+        $("#xmlButton").click(function () {
+          $(".ui").hide();
+          $(".json").hide();
+          $(".xml").show();
+        });
+
 	for (key in feeds) {
           if (feeds.hasOwnProperty(key)) {
             loadFeed(key, feeds[key].url);
@@ -190,9 +203,9 @@
       }
 
       loadFeeds({ 
-	      "Rss" : {title: "Rss",  url: "rss.xml" },
-	      "Atom": {title: "Atom", url: "atom.xml" },
-	      "RDF" : {title: "RDF",  url: "rdf.xml" }
+	      "Rss" : { title: "Le monde (rss)",  url: "rss.xml" },
+	      "Atom": { title: "xkcd (atom)", url: "atom.xml" },
+	      "RDF" : { title: "lwn.net (rdf)",  url: "rdf.xml" }
       });
       
     </script>    
